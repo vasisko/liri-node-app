@@ -12,10 +12,13 @@ require("dotenv").config();
 var keys = require('./keys.js');
 var Spotify = require('node-spotify-api');
 var Twitter = require('twitter');
+var request = require("request"); //OMDB
 
 var spotify = new Spotify(keys.spotify);
 var client = new Twitter(keys.twitter);
 
+var songQuery; //this will be track to search for at Spotify
+var movieName; //this will be the movie to search for at OMDB
 //____________________________
 
 //What is user asking for?
@@ -36,7 +39,7 @@ switch (userRequest) {
       break;
 
     case('do-what-it-says'):
-      random();
+      dataFile();
       break;
 }
 
@@ -44,15 +47,15 @@ switch (userRequest) {
 function latestTweets() {
     console.log("\n Latest Tweets:\n ")
 
-    //parameters:  twitter name and 20 tweets ...recommendedby npm--include retweets set to 1
+    //parameters:  twitter name and 20 tweets(ACTUALY 13) ...recommended by npm: include retweets set to 1
     var params = {screen_name: 'LilyDDog', count: 20, include_rts:1};
     
     //GET last 20 tweets from timeline
     client.get('statuses/user_timeline', params, function(error, tweets, response) {
       if (!error) {
 
-        //print each with line breaks
-        for(var i=0; i<5; i++){
+        //print each with line breaks   ....use 13 to reflect actual
+        for(var i=0; i<13; i++){
           console.log(tweets[i].text +"\n tweeted : " + tweets[i].created_at +"\n");
         }
       }
@@ -64,63 +67,105 @@ function song(){
     console.log("\n Song Info\n");
     //console.log(process.argv[3]);
    
-    var songTitle; //this will be track to search for at Spotify
-    
-    //Use default value if user did not include song title.
-    //Otherwise user input argv3 is track title
-    if(!process.argv[3]){ songTitle = "the sign";}
-    else {songTitle = process.argv[3];};
+    //DEFAULT VALUE:  if user did not include song title.
+    if(!process.argv[3]){ 
+        songQuery = "Ace of Base";
+    }
+    //USER INPUT: Otherwise user input argv3 is track title
+    else {
+        songQuery = process.argv[3];
+    }
+    spotQ();
 
-    //console.log(songTitle);
-
-    //Query Spotify for track and related info
-    spotify.search({ type: 'track', query:songTitle }, function(err, data) {
+}
+    //QUERY SPOTIFY for track and related info
+function spotQ() {
+    spotify.search({ type: 'track', query:songQuery }, function(err, data) {
         if (err) {
             return console.log('Error occurred: ' + err);
-          }
+        }
         
+        // Display song info
         console.log("Song Name: " + data.tracks.items[0].name); 
+        //*************************display all artists - loop thru  i<artists.length */
         console.log("Artist(s): " + data.tracks.items[0].artists[0].name); 
         console.log("Album: " + data.tracks.items[0].album.name);
         console.log("Preview a sample here: " + data.tracks.items[0].preview_url);
-        
-      });
-}
+    });
+    }  //end of spotify query 
+
 
 function movie() {
 
-    //OMDB Movie info request
-    var request = require("request");
-
     // Grab the movieName which will always be the third node argument.
-    var movieName = process.argv[3];
+    movieName = process.argv[3];
 
-    // ****  TO DO:
-    //add "+" between words:  ie: the+bird+cage
+    movieQ();
+};
 
+function movieQ() {
     // Run a request to the OMDB API with the movie name specified
     var queryUrl = "http://www.omdbapi.com/?t=" + movieName + "&y=&plot=short&apikey=trilogy";
 
-    //For debugging
-    console.log(queryUrl);
-
+    // SEND OMDB Movie request
     request(queryUrl, function(error, response, body) {
 
       // If the request is successful
       if (!error && response.statusCode === 200) {
 
+        var jpb = JSON.parse(body);
         // Parse the body of the page to find the parameters req'd
         console.log("\nMovie Info\n")
-        console.log("Movie Title: " + JSON.parse(body).Title);
-        console.log("Release Year: " + JSON.parse(body).Year);
-        console.log("IMDB Rating: " + JSON.parse(body).Ratings[0].Value);
-        console.log("Rotten Tomatoes Rating: " + JSON.parse(body).Ratings[1].Value);
-        console.log("Country produced in: " + JSON.parse(body).Country);
-        console.log("Language of the movie: " + JSON.parse(body).Language);
-        console.log("Plot: " + JSON.parse(body).Plot);
-        console.log("Actors: " + JSON.parse(body).Actors);
+        console.log(
+        "Movie Title: " + jpb.Title + 
+        "\nRelease Year: " + jpb.Year +
+        "\nIMDB Rating: " + jpb.Ratings[0].Value +
+        "\nRotten Tomatoes Rating: " + jpb.Ratings[1].Value +
+        "\nCountry produced in: " + jpb.Country +
+        "\nLanguage of the movie: " + jpb.Language +
+        "\nPlot: " + jpb.Plot + 
+        "\nActors: " + jpb.Actors);
 
         // Parameters:  Year   Actors   Plot   Language   Country   Rating.Source.
       }
     });
-};
+
+}
+// Do-what-it-says :  using a data file to direct the query
+function dataFile() {
+
+    var fs = require("fs");
+
+    fs.readFile("./random.txt", "utf8", function(error, data) {
+
+    // If errors it will log the error to the console.
+    if (error) {
+      return console.log(error);
+    }
+  
+    // Then split it by commas (to make it more readable)
+    var dataArr = data.split(",");
+  
+    // We will then re-display the content as an array for later use.
+    console.log("The data file contents are : " + dataArr + "\n");
+  
+    
+    switch (dataArr[0]) {
+
+        case ('my-tweets'): 
+          latestTweets();
+          break;
+    
+        case ('spotify-this-song'):
+          songQuery = dataArr[1]
+          spotQ();
+          break;
+    
+        case ('movie-this'):
+          movieName = dataArr[1]
+          movieQ();
+          break;
+    }
+
+    });
+}
