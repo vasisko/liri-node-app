@@ -59,25 +59,30 @@ function latestTweets() {
     });
 }
 
+// Function will display song name/artist/album/preview link
 function song(){
     console.log("\n Song Info\n");
+    //console.log(process.argv[3]);
+   
+    var songTitle; //this will be track to search for at Spotify
+    
+    //Use default value if user did not include song title.
+    //Otherwise user input argv3 is track title
+    if(!process.argv[3]){ songTitle = "the sign";}
+    else {songTitle = process.argv[3];};
 
-    var songTitle = process.argv[3];
+    //console.log(songTitle);
 
+    //Query Spotify for track and related info
     spotify.search({ type: 'track', query:songTitle }, function(err, data) {
         if (err) {
-         // return 
-         console.log('Error occurred: ' + err + "\nHere is a song for you!");
-       
-         //Use default value if user did not include song title.
-          songTitle = "The Sign";
-        }
-        //songTitle = songTitle.split(' ').join('+');
-        console.log(data.tracks.items[0].name); 
-        //for(var i=0; i<artists.length; i++){
-          console.log(data.tracks.items[0].artists[0].name); 
-        //}
-        console.log(data.tracks.items[0].preview_url);
+            return console.log('Error occurred: ' + err);
+          }
+        
+        console.log("Song Name: " + data.tracks.items[0].name); 
+        console.log("Artist(s): " + data.tracks.items[0].artists[0].name); 
+        console.log("Album: " + data.tracks.items[0].album.name);
+        console.log("Preview a sample here: " + data.tracks.items[0].preview_url);
         
       });
 }
