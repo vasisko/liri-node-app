@@ -57,3 +57,5 @@ typings/
 # dotenv environment variables file
 .env
 
+# Added for project 
+.DS_Store
