@@ -8,12 +8,12 @@
 //load variables into process.env
 require("dotenv").config();
 
-//build access keys for api's -- import fron keys.js
-var keys = require('./keys.js');
-var Spotify = require('node-spotify-api');
-var Twitter = require('twitter');
-var request = require("request"); //OMDB
+var keys = require('./keys.js');  //file containing access keys
+var Spotify = require('node-spotify-api'); //spotify npm
+var Twitter = require('twitter');  //twitter npm
+var request = require("request"); //OMDB will use request npm
 
+//build access keys for api's -- import fron keys.js
 var spotify = new Spotify(keys.spotify);
 var client = new Twitter(keys.twitter);
 
@@ -21,7 +21,7 @@ var songQuery; //this will be track to search for at Spotify
 var movieName; //this will be the movie to search for at OMDB
 //____________________________
 
-//What is user asking for?
+//What is user requesting?
 var userRequest = process.argv[2];
 
 switch (userRequest) {
@@ -64,8 +64,6 @@ function latestTweets() {
 
 // Function will display song name/artist/album/preview link
 function song(){
-    console.log("\n Song Info\n");
-    //console.log(process.argv[3]);
    
     //DEFAULT VALUE:  if user did not include song title.
     if(!process.argv[3]){ 
@@ -78,19 +76,27 @@ function song(){
     spotQ();
 
 }
-    //QUERY SPOTIFY for track and related info
+//QUERY SPOTIFY for track and related info
 function spotQ() {
     spotify.search({ type: 'track', query:songQuery }, function(err, data) {
         if (err) {
             return console.log('Error occurred: ' + err);
         }
         
+        // store spotify object here
+        var sData = data.tracks.items[0];
+
         // Display song info
-        console.log("Song Name: " + data.tracks.items[0].name); 
-        //*************************display all artists - loop thru  i<artists.length */
-        console.log("Artist(s): " + data.tracks.items[0].artists[0].name); 
-        console.log("Album: " + data.tracks.items[0].album.name);
-        console.log("Preview a sample here: " + data.tracks.items[0].preview_url);
+        console.log("\n Song Info\n");    
+        console.log("Song Name: " + sData.name); 
+
+        //display all artists - loop thru  i<artists.length */
+        for (var i=0; i<sData.artists.length; i++){
+            console.log("Artist(s): " +sData.artists[i].name); 
+        }
+
+        console.log("Album: " + sData.album.name);
+        console.log("Preview a sample here: " + sData.preview_url);
     });
     }  //end of spotify query 
 
@@ -138,33 +144,33 @@ function dataFile() {
 
     fs.readFile("./random.txt", "utf8", function(error, data) {
 
-    // If errors it will log the error to the console.
-    if (error) {
-      return console.log(error);
-    }
+        // If errors it will log the error to the console.
+        if (error) {
+            return console.log(error);
+        }
   
-    // Then split it by commas (to make it more readable)
-    var dataArr = data.split(",");
+        // Then split it by commas (to make it more readable)
+        var dataArr = data.split(",");
   
-    // We will then re-display the content as an array for later use.
-    console.log("The data file contents are : " + dataArr + "\n");
+        // We will then re-display the content as an array for later use.
+        console.log("The data file contents are : " + dataArr + "\n");
   
-    
-    switch (dataArr[0]) {
+        // provide switch for dataFile possibilities
+        switch (dataArr[0]) {
 
-        case ('my-tweets'): 
-          latestTweets();
-          break;
+            case ('my-tweets'): 
+              latestTweets();
+              break;
     
-        case ('spotify-this-song'):
-          songQuery = dataArr[1]
-          spotQ();
-          break;
+            case ('spotify-this-song'):
+              songQuery = dataArr[1]
+              spotQ();
+              break;
     
-        case ('movie-this'):
-          movieName = dataArr[1]
-          movieQ();
-          break;
+            case ('movie-this'):
+              movieName = dataArr[1]
+              movieQ();
+              break;
     }
 
     });
